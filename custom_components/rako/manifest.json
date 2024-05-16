@@ -1,12 +1,16 @@
 {
-  "domain": "rako",
-  "name": "Rako",
-  "config_flow": true,
-  "documentation": "https://github.com/xdumaster1/rako_HA/",
-  "issue_tracker": "https://github.com/xdumaster1/rako_HA/issues",
-  "codeowners": ["@boshjosh1918"],
-  "dependencies": [],
-  "requirements": [],
-  "version": "0.0.1",
-  "iot_class": "local_polling"
+    "domain": "rako",
+    "name": "Rako",
+    "documentation": "https://github.com/xdumaster1/rako_HA",
+    "requirements": [],
+    "dependencies": [],
+    "codeowners": [],
+    "quality_scale": "silver",
+    "version": "0.1",
+    "issue_tracker": "https://github.com/xdumaster1/rako_HA/issues",
+    "component_url": "https://github.com/xdumaster1/rako_HA",
+    "config_flow": true,
+    "ssdp": [],
+    "mqtt": [],
+    "zeroconf": []
 }
