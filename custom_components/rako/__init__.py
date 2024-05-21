@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
+from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_MAC, CONF_NAME, CONF_PORT
 from homeassistant.core import HomeAssistant
@@ -40,12 +41,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     rako_domain_entry_data: RakoDomainEntryData = {
         "rako_bridge_client": rako_bridge,
         "rako_light_map": {},
+        "rako_switch_map": {},
         "rako_listener_task": None,
     }
     hass.data[DOMAIN][rako_bridge.mac] = rako_domain_entry_data
 
+    # Forward entry setup for lights and switches
     hass.async_create_task(
         hass.config_entries.async_forward_entry_setup(entry, LIGHT_DOMAIN)
+    )
+    hass.async_create_task(
+        hass.config_entries.async_forward_entry_setup(entry, SWITCH_DOMAIN)
     )
 
     return True
@@ -54,6 +60,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     await hass.config_entries.async_forward_entry_unload(entry, LIGHT_DOMAIN)
+    await hass.config_entries.async_forward_entry_unload(entry, SWITCH_DOMAIN)
 
     del hass.data[DOMAIN][entry.unique_id]
     if not hass.data[DOMAIN]:
