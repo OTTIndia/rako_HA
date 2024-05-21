@@ -200,13 +200,4 @@ class RakoChannelLight(RakoLight):
         try:
             await asyncio.wait_for(
                 self.bridge.set_channel_brightness(
-                    self._light.room_id, self._light.channel_id, brightness
-                ),
-                timeout=3.0,
-            )
-
-        except (RakoBridgeError, asyncio.TimeoutError):
-            if self._available:
-                _LOGGER.error("An error occurred while updating the Rako Light")
-            self._available = False
-            return
+                    self._light.room_id
