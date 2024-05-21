@@ -1,11 +1,10 @@
 """The Rako integration."""
 from __future__ import annotations
 
-import asyncio
 import logging
-
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
 from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
+from homeassistant.components.cover import DOMAIN as COVER_DOMAIN
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_MAC, CONF_NAME, CONF_PORT
 from homeassistant.core import HomeAssistant
@@ -14,10 +13,8 @@ from homeassistant.helpers import device_registry as dr
 from .bridge import RakoBridge
 from .const import DOMAIN
 from .model import RakoDomainEntryData
-from .switch import RakoSwitch
 
 _LOGGER = logging.getLogger(__name__)
-
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Rako from a config entry."""
@@ -44,6 +41,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "rako_bridge_client": rako_bridge,
         "rako_light_map": {},
         "rako_switch_map": {},
+        "rako_curtain_map": {},
+        "rako_rgbw_map": {},
         "rako_listener_task": None,
     }
     hass.data[DOMAIN][rako_bridge.mac] = rako_domain_entry_data
@@ -54,14 +53,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.async_create_task(
         hass.config_entries.async_forward_entry_setup(entry, SWITCH_DOMAIN)
     )
+    hass.async_create_task(
+        hass.config_entries.async_forward_entry_setup(entry, COVER_DOMAIN)
+    )
+    hass.async_create_task(
+        hass.config_entries.async_forward_entry_setup(entry, "light")  # For RGBW lights
+    )
 
     return True
-
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     await hass.config_entries.async_forward_entry_unload(entry, LIGHT_DOMAIN)
     await hass.config_entries.async_forward_entry_unload(entry, SWITCH_DOMAIN)
+    await hass.config_entries.async_forward_entry_unload(entry, COVER_DOMAIN)
+    await hass.config_entries.async_forward_entry_unload(entry, "light")  # For RGBW lights
 
     del hass.data[DOMAIN][entry.unique_id]
     if not hass.data[DOMAIN]:
