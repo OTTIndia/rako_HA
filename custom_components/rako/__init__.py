@@ -1,6 +1,7 @@
 """The Rako integration."""
 from __future__ import annotations
 
+import asyncio
 import logging
 
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
@@ -13,8 +14,10 @@ from homeassistant.helpers import device_registry as dr
 from .bridge import RakoBridge
 from .const import DOMAIN
 from .model import RakoDomainEntryData
+from .switch import RakoSwitch
 
 _LOGGER = logging.getLogger(__name__)
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Rako from a config entry."""
@@ -45,7 +48,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     }
     hass.data[DOMAIN][rako_bridge.mac] = rako_domain_entry_data
 
-    # Forward entry setup for lights and switches
     hass.async_create_task(
         hass.config_entries.async_forward_entry_setup(entry, LIGHT_DOMAIN)
     )
@@ -54,6 +56,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     return True
+
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
