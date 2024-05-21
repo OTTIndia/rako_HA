@@ -14,7 +14,7 @@ from homeassistant.core import HomeAssistant
 from .const import DOMAIN
 from .light import RakoLight
 from .model import RakoDomainEntryData
-from .switch import RakoSwitch  # Import the RakoSwitch class
+from .util import create_unique_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -42,11 +42,6 @@ class RakoBridge(Bridge):
         return rako_domain_entry_data["rako_light_map"]
 
     @property
-    def _switch_map(self) -> dict[str, RakoSwitch]:  # Add switch map
-        rako_domain_entry_data: RakoDomainEntryData = self.hass.data[DOMAIN][self.mac]
-        return rako_domain_entry_data["rako_switch_map"]
-
-    @property
     def _listener_task(self) -> Task | None:
         rako_domain_entry_data: RakoDomainEntryData = self.hass.data[DOMAIN][self.mac]
         return rako_domain_entry_data["rako_listener_task"]
@@ -61,28 +56,14 @@ class RakoBridge(Bridge):
         light_map = self._light_map
         return light_map.get(light_unique_id)
 
-    def get_listening_switch(self, switch_unique_id: str) -> RakoSwitch | None:  # Add this method
-        """Return the Switch, if listening."""
-        switch_map = self._switch_map
-        return switch_map.get(switch_unique_id)
-
     def _add_listening_light(self, light: RakoLight) -> None:
         light_map = self._light_map
         light_map[light.unique_id] = light
-
-    def _add_listening_switch(self, switch: RakoSwitch) -> None:  # Add this method
-        switch_map = self._switch_map
-        switch_map[switch.unique_id] = switch
 
     def _remove_listening_light(self, light: RakoLight) -> None:
         light_map = self._light_map
         if light.unique_id in light_map:
             del light_map[light.unique_id]
-
-    def _remove_listening_switch(self, switch: RakoSwitch) -> None:  # Add this method
-        switch_map = self._switch_map
-        if switch.unique_id in switch_map:
-            del switch_map[switch.unique_id]
 
     async def listen_for_state_updates(self) -> None:
         """Background task to listen for state updates."""
@@ -99,42 +80,17 @@ class RakoBridge(Bridge):
             except asyncio.CancelledError:
                 pass
 
-    async def register_for_state_updates(self, entity: RakoLight | RakoSwitch) -> None:
-        """Register a light or switch to listen for state updates."""
-        if isinstance(entity, RakoLight):
-            self._add_listening_light(entity)
-        elif isinstance(entity, RakoSwitch):
-            self._add_listening_switch(entity)
-
-        if len(self._light_map) == 1 and len(self._switch_map) == 0:
+    async def register_for_state_updates(self, light: RakoLight) -> None:
+        """Register a light to listen for state updates."""
+        self._add_listening_light(light)
+        if len(self._light_map) == 1:
             await self.listen_for_state_updates()
 
-    async def deregister_for_state_updates(self, entity: RakoLight | RakoSwitch) -> None:
-        """Deregister a light or switch to listen for state updates."""
-        if isinstance(entity, RakoLight):
-            self._remove_listening_light(entity)
-        elif isinstance(entity, RakoSwitch):
-            self._remove_listening_switch(entity)
-
-        if not self._light_map and not self._switch_map:
+    async def deregister_for_state_updates(self, light: RakoLight) -> None:
+        """Deregister a light to listen for state updates."""
+        self._remove_listening_light(light)
+        if not self._light_map:
             await self.stop_listening_for_state_updates()
-
-    async def discover_lights(self, session):
-        # Your existing implementation for discovering lights
-        pass
-
-    async def discover_switches(self):
-        # Placeholder implementation. Replace with actual logic.
-        switches = []  # This should be a list of switch objects
-        return switches
-
-    async def turn_on_switch(self, switch_id):
-        # Implement logic to turn on switch
-        pass
-
-    async def turn_off_switch(self, switch_id):
-        # Implement logic to turn off switch
-        pass
 
 
 def _state_update(bridge: RakoBridge, status_message: StatusMessage) -> None:
@@ -157,15 +113,6 @@ def _state_update(bridge: RakoBridge, status_message: StatusMessage) -> None:
         listening_light.brightness = brightness
     else:
         _LOGGER.debug("Light not listening: %s", status_message)
-
-    switch_unique_id = create_unique_id(
-        bridge.mac, status_message.room, status_message.channel
-    )
-    listening_switch = bridge.get_listening_switch(switch_unique_id)
-    if listening_switch:
-        listening_switch.is_on = brightness > 0
-    else:
-        _LOGGER.debug("Switch not listening: %s", status_message)
 
 
 async def listen_for_state_updates(bridge: RakoBridge) -> None:
