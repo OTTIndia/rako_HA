@@ -14,10 +14,8 @@ from homeassistant.core import HomeAssistant
 from .const import DOMAIN
 from .light import RakoLight
 from .model import RakoDomainEntryData
-from .switch import RakoSwitch  # Import the RakoSwitch class
 
 _LOGGER = logging.getLogger(__name__)
-
 
 class RakoBridge(Bridge):
     """Represents a Rako Bridge."""
@@ -136,7 +134,6 @@ class RakoBridge(Bridge):
         # Implement logic to turn off switch
         pass
 
-
 def _state_update(bridge: RakoBridge, status_message: StatusMessage) -> None:
     light_unique_id = create_unique_id(
         bridge.mac, status_message.room, status_message.channel
@@ -167,11 +164,10 @@ def _state_update(bridge: RakoBridge, status_message: StatusMessage) -> None:
     else:
         _LOGGER.debug("Switch not listening: %s", status_message)
 
-
 async def listen_for_state_updates(bridge: RakoBridge) -> None:
     """Listen for state updates worker method."""
     async with get_dg_listener(bridge.port) as listener:
         while True:
             message = await bridge.next_pushed_message(listener)
-            if message and isinstance(message, StatusMessage):
+            if message:
                 _state_update(bridge, message)
