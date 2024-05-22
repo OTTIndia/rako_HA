@@ -44,4 +44,4 @@ class RakoRGBW(LightEntity):
         """Turn the light on."""
         self._brightness = kwargs.get("brightness", 255)
         hs_color = kwargs.get("hs_color", self._hs_color)
-        await self.hass.data[DOMAIN][self._light.mac].rako_bridge_client.set_rgbw(self.unique_id, hs_color
+       await self.hass.data[DOMAIN][self._light.mac].rako_bridge_client.set_rgbw(self.unique_id, hs_color)
