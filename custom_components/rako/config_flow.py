@@ -3,9 +3,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any
+from typing import Any, Dict
 
-from python_rako import BridgeDescription, discover_bridge
+from python_rako import discover_bridge
 from python_rako.bridge import Bridge
 from python_rako.const import RAKO_BRIDGE_DEFAULT_PORT
 from python_rako.exceptions import RakoBridgeError
@@ -21,7 +21,6 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-
 class RakoConfigFlow(ConfigFlow, domain=DOMAIN):
     """RakoConfigFlow."""
 
@@ -32,7 +31,7 @@ class RakoConfigFlow(ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle a flow initiated by the user."""
-        bridge_desc: BridgeDescription = {}
+        bridge_desc: Dict[str, Any] = {}
         if user_input is None:
             try:
                 bridge_desc = await asyncio.wait_for(
@@ -75,7 +74,7 @@ class RakoConfigFlow(ConfigFlow, domain=DOMAIN):
 
     def _show_setup_form(
         self,
-        bridge_desc: BridgeDescription,
+        bridge_desc: Dict[str, Any],
         errors: dict[str, str] | None = None,
     ) -> FlowResult:
         """Show the setup form to the user."""
@@ -83,16 +82,16 @@ class RakoConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_HOST, default=bridge_desc.get("host")): str,
-                    vol.Required(CONF_PORT, default=RAKO_BRIDGE_DEFAULT_PORT): int,
-                    vol.Optional(CONF_NAME, default=bridge_desc.get("name")): str,
-                    vol.Required(CONF_MAC, default=bridge_desc.get("mac")): str,
+                    vol.Required(CONF_HOST, default=bridge_desc.get("host", "")): str,
+                    vol.Required(CONF_PORT, default=bridge_desc.get("port", RAKO_BRIDGE_DEFAULT_PORT)): int,
+                    vol.Optional(CONF_NAME, default=bridge_desc.get("name", "")): str,
+                    vol.Required(CONF_MAC, default=bridge_desc.get("mac", "")): str,
                 }
             ),
             errors=errors or {},
         )
 
-    async def _get_bridge_info(self, bridge_desc: BridgeDescription) -> BridgeInfo:
+    async def _get_bridge_info(self, bridge_desc: Dict[str, Any]) -> BridgeInfo:
         session = async_get_clientsession(self.hass)
         bridge = Bridge(**bridge_desc)
         return await asyncio.wait_for(
