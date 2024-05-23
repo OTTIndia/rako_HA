@@ -1,5 +1,3 @@
-# In a file named switch.py
-
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.const import ATTR_BRIGHTNESS
 
