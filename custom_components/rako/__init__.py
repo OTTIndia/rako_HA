@@ -1,7 +1,4 @@
 """The Rako integration."""
-from __future__ import annotations
-
-import asyncio
 import logging
 
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
@@ -10,6 +7,7 @@ from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_MAC, CONF_NAME, CONF_PORT
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr
 
 from .bridge import RakoBridge
 from .const import DOMAIN
@@ -28,7 +26,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass=hass,
     )
 
-    device_registry = await hass.helpers.device_registry.async_get_registry(hass)
+    device_registry = await dr.async_get_registry(hass)
     device_registry.async_get_or_create(
         config_entry_id=entry.entry_id,
         connections={(dr.CONNECTION_NETWORK_MAC, entry.data[CONF_MAC])},
@@ -46,7 +44,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "rako_rgbw_switch_map": {},
         "rako_listener_task": None,
     }
-    hass.data[DOMAIN][rako_bridge.mac] = rako_domain_entry_data
+    hass.data[DOMAIN][entry.unique_id] = rako_domain_entry_data
 
     hass.async_create_task(
         hass.config_entries.async_forward_entry_setup(entry, LIGHT_DOMAIN)
@@ -62,18 +60,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    # Unload all domains associated with the config entry
-    tasks = [
-        hass.config_entries.async_forward_entry_unload(entry, LIGHT_DOMAIN),
-        hass.config_entries.async_forward_entry_unload(entry, COVER_DOMAIN),
-        hass.config_entries.async_forward_entry_unload(entry, SWITCH_DOMAIN)
-    ]
-    await asyncio.gather(*tasks)
+    await hass.config_entries.async_forward_entry_unload(entry, LIGHT_DOMAIN)
+    await hass.config_entries.async_forward_entry_unload(entry, COVER_DOMAIN)
+    await hass.config_entries.async_forward_entry_unload(entry, SWITCH_DOMAIN)
 
-    # Remove the entry from the DOMAIN data
-    if entry.data[CONF_MAC] in hass.data[DOMAIN]:
-        del hass.data[DOMAIN][entry.data[CONF_MAC]]
-        if not hass.data[DOMAIN]:
-            del hass.data[DOMAIN]
+    del hass.data[DOMAIN][entry.unique_id]
+    if not hass.data[DOMAIN]:
+        del hass.data[DOMAIN]
 
     return True
