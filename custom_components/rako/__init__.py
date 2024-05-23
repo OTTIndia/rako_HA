@@ -1,6 +1,7 @@
 """The Rako integration."""
 from __future__ import annotations
 
+import asyncio
 import logging
 
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
@@ -9,7 +10,6 @@ from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_MAC, CONF_NAME, CONF_PORT
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import device_registry as dr
 
 from .bridge import RakoBridge
 from .const import DOMAIN
@@ -41,8 +41,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     rako_domain_entry_data: RakoDomainEntryData = {
         "rako_bridge_client": rako_bridge,
         "rako_light_map": {},
-        "rako_curtain_map": {},  # Added
-        "rako_switch_map": {},   # Added
+        "rako_curtain_map": {},
+        "rako_switch_map": {},
         "rako_rgbw_switch_map": {},
         "rako_listener_task": None,
     }
@@ -62,12 +62,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    await hass.config_entries.async_forward_entry_unload(entry, LIGHT_DOMAIN)
-    await hass.config_entries.async_forward_entry_unload(entry, COVER_DOMAIN)
-    await hass.config_entries.async_forward_entry_unload(entry, SWITCH_DOMAIN)
+    # Unload all domains associated with the config entry
+    tasks = [
+        hass.config_entries.async_forward_entry_unload(entry, LIGHT_DOMAIN),
+        hass.config_entries.async_forward_entry_unload(entry, COVER_DOMAIN),
+        hass.config_entries.async_forward_entry_unload(entry, SWITCH_DOMAIN)
+    ]
+    await asyncio.gather(*tasks)
 
-    del hass.data[DOMAIN][entry.data[CONF_MAC]]
-    if not hass.data[DOMAIN]:
-        del hass.data[DOMAIN]
+    # Remove the entry from the DOMAIN data
+    if entry.data[CONF_MAC] in hass.data[DOMAIN]:
+        del hass.data[DOMAIN][entry.data[CONF_MAC]]
+        if not hass.data[DOMAIN]:
+            del hass.data[DOMAIN]
 
     return True
