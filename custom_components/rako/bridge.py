@@ -12,6 +12,8 @@ from python_rako.model import ChannelStatusMessage, SceneStatusMessage, StatusMe
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
+from .curtain import RakoCurtain
+from .rgbw_switch import RakoRGBWSwitch
 from .light import RakoLight
 from .model import RakoDomainEntryData
 from .util import create_unique_id
@@ -42,6 +44,16 @@ class RakoBridge(Bridge):
         return rako_domain_entry_data["rako_light_map"]
 
     @property
+    def _curtain_map(self) -> dict[str, RakoCurtain]:
+        rako_domain_entry_data: RakoDomainEntryData = self.hass.data[DOMAIN][self.mac]
+        return rako_domain_entry_data["rako_curtain_map"]
+
+    @property
+    def _rgbw_switch_map(self) -> dict[str, RakoRGBWSwitch]:
+        rako_domain_entry_data: RakoDomainEntryData = self.hass.data[DOMAIN][self.mac]
+        return rako_domain_entry_data["rako_rgbw_switch_map"]
+
+    @property
     def _listener_task(self) -> Task | None:
         rako_domain_entry_data: RakoDomainEntryData = self.hass.data[DOMAIN][self.mac]
         return rako_domain_entry_data["rako_listener_task"]
@@ -56,14 +68,42 @@ class RakoBridge(Bridge):
         light_map = self._light_map
         return light_map.get(light_unique_id)
 
+    def get_listening_curtain(self, curtain_unique_id: str) -> RakoCurtain | None:
+        """Return the Curtain, if listening."""
+        curtain_map = self._curtain_map
+        return curtain_map.get(curtain_unique_id)
+
+    def get_listening_rgbw_switch(self, switch_unique_id: str) -> RakoRGBWSwitch | None:
+        """Return the RGBW Switch, if listening."""
+        switch_map = self._rgbw_switch_map
+        return switch_map.get(switch_unique_id)
+
     def _add_listening_light(self, light: RakoLight) -> None:
         light_map = self._light_map
         light_map[light.unique_id] = light
+
+    def _add_listening_curtain(self, curtain: RakoCurtain) -> None:
+        curtain_map = self._curtain_map
+        curtain_map[curtain.unique_id] = curtain
+
+    def _add_listening_rgbw_switch(self, switch: RakoRGBWSwitch) -> None:
+        switch_map = self._rgbw_switch_map
+        switch_map[switch.unique_id] = switch
 
     def _remove_listening_light(self, light: RakoLight) -> None:
         light_map = self._light_map
         if light.unique_id in light_map:
             del light_map[light.unique_id]
+
+    def _remove_listening_curtain(self, curtain: RakoCurtain) -> None:
+        curtain_map = self._curtain_map
+        if curtain.unique_id in curtain_map:
+            del curtain_map[curtain.unique_id]
+
+    def _remove_listening_rgbw_switch(self, switch: RakoRGBWSwitch) -> None:
+        switch_map = self._rgbw_switch_map
+        if switch.unique_id in switch_map:
+            del switch_map[switch.unique_id]
 
     async def listen_for_state_updates(self) -> None:
         """Background task to listen for state updates."""
@@ -80,17 +120,59 @@ class RakoBridge(Bridge):
             except asyncio.CancelledError:
                 pass
 
-    async def register_for_state_updates(self, light: RakoLight) -> None:
-        """Register a light to listen for state updates."""
-        self._add_listening_light(light)
-        if len(self._light_map) == 1:
+    async def register_for_state_updates(self, entity) -> None:
+        """Register an entity (light, curtain, or switch) to listen for state updates."""
+        if isinstance(entity, RakoLight):
+            self._add_listening_light(entity)
+        elif isinstance(entity, RakoCurtain):
+            self._add_listening_curtain(entity)
+        elif isinstance(entity, RakoRGBWSwitch):
+            self._add_listening_rgbw_switch(entity)
+
+        if len(self._light_map) == 1 or len(self._curtain_map) == 1 or len(self._rgbw_switch_map) == 1:
             await self.listen_for_state_updates()
 
-    async def deregister_for_state_updates(self, light: RakoLight) -> None:
-        """Deregister a light to listen for state updates."""
-        self._remove_listening_light(light)
-        if not self._light_map:
+    async def deregister_for_state_updates(self, entity) -> None:
+        """Deregister an entity (light, curtain, or switch) to listen for state updates."""
+        if isinstance(entity, RakoLight):
+            self._remove_listening_light(entity)
+        elif isinstance(entity, RakoCurtain):
+            self._remove_listening_curtain(entity)
+        elif isinstance(entity, RakoRGBWSwitch):
+            self._remove_listening_rgbw_switch(entity)
+
+        if not self._light_map and not self._curtain_map and not self._rgbw_switch_map:
             await self.stop_listening_for_state_updates()
+
+    async def close_curtain(self):
+        """Implement the logic to close the curtain."""
+        _LOGGER.debug("Closing curtain")
+        # Add your implementation to close the curtain
+
+    async def open_curtain(self):
+        """Implement the logic to open the curtain."""
+        _LOGGER.debug("Opening curtain")
+        # Add your implementation to open the curtain
+
+    async def turn_on_rgbw(self):
+        """Implement the logic to turn on the RGBW switch."""
+        _LOGGER.debug("Turning on RGBW switch")
+        # Add your implementation to turn on the RGBW switch
+
+    async def turn_off_rgbw(self):
+        """Implement the logic to turn off the RGBW switch."""
+        _LOGGER.debug("Turning off RGBW switch")
+        # Add your implementation to turn off the RGBW switch
+
+    async def turn_on_light(self, brightness: int):
+        """Implement the logic to turn on the light with a given brightness."""
+        _LOGGER.debug("Turning on light with brightness: %s", brightness)
+        # Add your implementation to turn on the light
+
+    async def turn_off_light(self):
+        """Implement the logic to turn off the light."""
+        _LOGGER.debug("Turning off light")
+        # Add your implementation to turn off the light
 
 
 def _state_update(bridge: RakoBridge, status_message: StatusMessage) -> None:
