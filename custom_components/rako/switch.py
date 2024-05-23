@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any
 
 import python_rako
 from python_rako.exceptions import RakoBridgeError
-from python_rako.helpers import convert_to_scene
 
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
@@ -65,12 +64,14 @@ class RakoSwitch(SwitchEntity):
     @property
     def name(self) -> str:
         """Return the display name of this switch."""
-        raise NotImplementedError()
+        return f"{self._switch.room_title} - {self._switch.channel_name}"
 
     @property
     def unique_id(self) -> str:
         """Switch's unique ID."""
-        raise NotImplementedError()
+        return create_unique_id(
+            self.bridge.mac, self._switch.room_id, self._switch.channel_id
+        )
 
     @property
     def available(self) -> bool:
@@ -85,95 +86,52 @@ class RakoSwitch(SwitchEntity):
         """Run when entity about to be added to hass."""
         await self.bridge.deregister_for_state_updates(self)
 
-    @property
-    def is_on(self) -> bool:
-        """Return true if switch is on."""
-        raise NotImplementedError()
-
-    async def async_turn_on(self, **kwargs: Any) -> None:
-        """Turn on the switch."""
-        raise NotImplementedError()
-
-    async def async_turn_off(self, **kwargs: Any) -> None:
-        """Turn off the switch."""
-        raise NotImplementedError()
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        """Return device information about this Rako Switch."""
-        return {
-            "identifiers": {(DOMAIN, self.unique_id)},
-            "name": self.name,
-            "manufacturer": "Rako",
-            "suggested_area": self._switch.room_title,
-            "via_device": (DOMAIN, self.bridge.mac),
-        }
-
 
 class RakoRoomSwitch(RakoSwitch):
     """Representation of a Rako Room Switch."""
 
-    def __init__(self, bridge: RakoBridge, switch: python_rako.RoomSwitch) -> None:
-        """Initialize a Rako Room Switch."""
-        super().__init__(bridge, switch)
-        self._switch: python_rako.RoomSwitch = switch
-
-    @property
-    def name(self) -> str:
-        """Return the display name of this switch."""
-        room_title: str = self._switch.room_title
-        return room_title
-
-    @property
-    def unique_id(self) -> str:
-        """Switch's unique ID."""
-        return create_unique_id(
-            self.bridge.mac, self._switch.room_id, self._switch.channel_id
-        )
-
     @property
     def is_on(self) -> bool:
         """Return true if switch is on."""
-        raise NotImplementedError()
+        return self._switch.state
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the switch."""
-        raise NotImplementedError()
+        try:
+            await self.bridge.set_room_scene(self._switch.room_id, 255)
+        except (RakoBridgeError, asyncio.TimeoutError):
+            self._available = False
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the switch."""
-        raise NotImplementedError()
+        try:
+            await self.bridge.set_room_scene(self._switch.room_id, 0)
+        except (RakoBridgeError, asyncio.TimeoutError):
+            self._available = False
 
 
 class RakoChannelSwitch(RakoSwitch):
     """Representation of a Rako Channel Switch."""
 
-    def __init__(self, bridge: RakoBridge, switch: python_rako.ChannelSwitch) -> None:
-        """Initialize a Rako Channel Switch."""
-        super().__init__(bridge, switch)
-        self._switch: python_rako.ChannelSwitch = switch
-
-    @property
-    def name(self) -> str:
-        """Return the display name of this switch."""
-        return f"{self._switch.room_title} - {self._switch.channel_name}"
-
-    @property
-    def unique_id(self) -> str:
-        """Switch's unique ID."""
-        return create_unique_id(
-            self.bridge.mac, self._switch.room_id, self._switch.channel_id
-        )
-
     @property
     def is_on(self) -> bool:
         """Return true if switch is on."""
-        raise NotImplementedError()
+        return self._switch.state
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the switch."""
-        raise NotImplementedError()
+        try:
+            await self.bridge.set_channel_brightness(
+                self._switch.room_id, self._switch.channel_id, 255
+            )
+        except (RakoBridgeError, asyncio.TimeoutError):
+            self._available = False
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the switch."""
-        raise NotImplementedError()
+        try:
+            await self.bridge.set_channel_brightness(
+                self._switch.room_id, self._switch.channel_id, 0
+            )
+        except (RakoBridgeError, asyncio.TimeoutError):
+            self._available = False
