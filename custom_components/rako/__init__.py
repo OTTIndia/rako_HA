@@ -41,7 +41,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     rako_domain_entry_data: RakoDomainEntryData = {
         "rako_bridge_client": rako_bridge,
         "rako_light_map": {},
-        "rako_curtain_map": {},
+        "rako_curtain_map": {},  # Added
+        "rako_switch_map": {},   # Added
         "rako_rgbw_switch_map": {},
         "rako_listener_task": None,
     }
