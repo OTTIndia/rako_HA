@@ -1,13 +1,14 @@
-"""The Rako integration."""
 from __future__ import annotations
 
 import logging
 
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
+from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_MAC, CONF_NAME, CONF_PORT
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.entity_platform import async_get_current_platform
 
 from .bridge import RakoBridge
 from .const import DOMAIN
@@ -40,12 +41,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     rako_domain_entry_data: RakoDomainEntryData = {
         "rako_bridge_client": rako_bridge,
         "rako_light_map": {},
+        "rako_switch_map": {},  # Add a map to store switch entities
         "rako_listener_task": None,
     }
     hass.data[DOMAIN][rako_bridge.mac] = rako_domain_entry_data
 
+    # Set up light platform
     hass.async_create_task(
         hass.config_entries.async_forward_entry_setup(entry, LIGHT_DOMAIN)
+    )
+
+    # Set up switch platform
+    hass.async_create_task(
+        hass.config_entries.async_forward_entry_setup(entry, SWITCH_DOMAIN)
     )
 
     return True
@@ -55,9 +63,12 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     # Unload the light platform
     light_platform_unloaded = await hass.config_entries.async_forward_entry_unload(entry, LIGHT_DOMAIN)
-    
-    # Remove the entry data
-    if light_platform_unloaded:
+
+    # Unload the switch platform
+    switch_platform_unloaded = await hass.config_entries.async_forward_entry_unload(entry, SWITCH_DOMAIN)
+
+    # Remove the entry data if both platforms are unloaded
+    if light_platform_unloaded and switch_platform_unloaded:
         del hass.data[DOMAIN][entry.unique_id]
         if not hass.data[DOMAIN]:
             del hass.data[DOMAIN]
