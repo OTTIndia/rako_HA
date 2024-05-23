@@ -1,5 +1,4 @@
 from homeassistant.components.switch import SwitchEntity
-from homeassistant.const import ATTR_BRIGHTNESS
 
 class RakoSwitch(SwitchEntity):
     """Representation of a Rako Switch."""
@@ -40,8 +39,8 @@ class RakoSwitch(SwitchEntity):
 
     async def async_turn_on(self, **kwargs):
         """Turn on the switch."""
-        if ATTR_BRIGHTNESS in kwargs:
-            brightness = kwargs[ATTR_BRIGHTNESS]
+        if "brightness" in kwargs:
+            brightness = kwargs["brightness"]
             await self._switch.turn_on(brightness=brightness)
         else:
             await self._switch.turn_on()
