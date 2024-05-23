@@ -53,10 +53,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    await hass.config_entries.async_forward_entry_unload(entry, LIGHT_DOMAIN)
+    # Unload the light platform
+    light_platform_unloaded = await hass.config_entries.async_forward_entry_unload(entry, LIGHT_DOMAIN)
+    
+    # Remove the entry data
+    if light_platform_unloaded:
+        del hass.data[DOMAIN][entry.unique_id]
+        if not hass.data[DOMAIN]:
+            del hass.data[DOMAIN]
+        return True
 
-    del hass.data[DOMAIN][entry.unique_id]
-    if not hass.data[DOMAIN]:
-        del hass.data[DOMAIN]
-
-    return True
+    return False
