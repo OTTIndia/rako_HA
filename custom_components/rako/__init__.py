@@ -2,12 +2,9 @@
 import logging
 
 from homeassistant.components.light import DOMAIN as LIGHT_DOMAIN
-from homeassistant.components.cover import DOMAIN as COVER_DOMAIN
-from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_MAC, CONF_NAME, CONF_PORT
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import async_get_registry
 
 from .bridge import RakoBridge
 from .const import DOMAIN
@@ -27,7 +24,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass=hass,
     )
 
-    device_registry = async_get_registry(hass)
+    device_registry = await hass.helpers.device_registry.async_get_registry(hass)
     device_registry.async_get_or_create(
         config_entry_id=entry.entry_id,
         connections={(dr.CONNECTION_NETWORK_MAC, entry.data[CONF_MAC])},
