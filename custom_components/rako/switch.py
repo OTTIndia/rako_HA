@@ -12,7 +12,6 @@ from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.entity import DeviceInfo, Entity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
@@ -34,7 +33,7 @@ async def async_setup_entry(
     rako_domain_entry_data: RakoDomainEntryData = hass.data[DOMAIN][entry.unique_id]
     bridge = rako_domain_entry_data["rako_bridge_client"]
 
-    hass_switches: list[Entity] = []
+    hass_switches: list[SwitchEntity] = []
     session = async_get_clientsession(hass)
 
     async for switch in bridge.discover_switches(session):
