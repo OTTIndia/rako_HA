@@ -7,7 +7,7 @@ from homeassistant.components.switch import DOMAIN as SWITCH_DOMAIN
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_MAC, CONF_NAME, CONF_PORT
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import async_get as async_get_device_registry
+from homeassistant.helpers.device_registry import async_get_registry
 
 from .bridge import RakoBridge
 from .const import DOMAIN
@@ -27,7 +27,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass=hass,
     )
 
-    device_registry = await async_get_device_registry(hass)
+    device_registry = async_get_registry(hass)
     device_registry.async_get_or_create(
         config_entry_id=entry.entry_id,
         connections={(dr.CONNECTION_NETWORK_MAC, entry.data[CONF_MAC])},
@@ -40,12 +40,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     rako_domain_entry_data: RakoDomainEntryData = {
         "rako_bridge_client": rako_bridge,
         "rako_light_map": {},
-        "rako_curtain_map": {},
+        "rako_curtain_map": {},  # Add mappings for curtain, switch, and rgbw_switch
         "rako_switch_map": {},
         "rako_rgbw_switch_map": {},
         "rako_listener_task": None,
     }
-    hass.data[DOMAIN][entry.unique_id] = rako_domain_entry_data
+    hass.data[DOMAIN][entry.entry_id] = rako_domain_entry_data
 
     hass.async_create_task(
         hass.config_entries.async_forward_entry_setup(entry, LIGHT_DOMAIN)
@@ -56,6 +56,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.async_create_task(
         hass.config_entries.async_forward_entry_setup(entry, SWITCH_DOMAIN)
     )
+    # Forward entry setup for additional platforms (curtain, switch, rgbw_switch)
 
     return True
 
@@ -65,8 +66,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await hass.config_entries.async_forward_entry_unload(entry, LIGHT_DOMAIN)
     await hass.config_entries.async_forward_entry_unload(entry, COVER_DOMAIN)
     await hass.config_entries.async_forward_entry_unload(entry, SWITCH_DOMAIN)
+    # Add forwarding unload for additional platforms (curtain, switch, rgbw_switch)
 
-    del hass.data[DOMAIN][entry.unique_id]
+    del hass.data[DOMAIN][entry.entry_id]
     if not hass.data[DOMAIN]:
         del hass.data[DOMAIN]
 
